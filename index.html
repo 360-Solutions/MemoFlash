@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MemoFlash v0.2</title>
+    <title>MemoFlash v0.02</title>
     <style>
         :root {
             --bg-color: #f4f6f8;
@@ -14,25 +14,28 @@
             --border-color: #d0d7de;
         }
 
+        /* LOCKED VIEWPORT CSS - Prevents buttons from falling off screen */
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-dark);
             margin: 0; padding: 15px;
-            /* The Notch Fix */
             padding-top: max(15px, env(safe-area-inset-top)); 
-            display: flex; flex-direction: column; align-items: center;
-            height: 100vh; box-sizing: border-box;
+            padding-bottom: max(15px, env(safe-area-inset-bottom));
+            height: 100vh; width: 100vw; box-sizing: border-box;
+            overflow: hidden; 
             user-select: none; -webkit-tap-highlight-color: transparent;
         }
 
         .view-container {
-            width: 100%; max-width: 400px; display: none; flex-direction: column; height: 100%;
+            width: 100%; max-width: 400px; margin: 0 auto; 
+            display: none; flex-direction: column; height: 100%;
         }
-        #capture-view { display: flex; gap: 15px; }
+        
+        #capture-view { display: flex; }
 
         /* --- HEADER --- */
-        .header { text-align: center; margin-bottom: 10px; }
+        .header { text-align: center; margin-bottom: 15px; flex-shrink: 0; }
         .header h1 { margin: 0; font-size: 24px; color: var(--blue-accent); }
         .header p { margin: 5px 0 0 0; font-size: 13px; color: var(--text-dim); }
 
@@ -40,27 +43,36 @@
         textarea {
             width: 100%; padding: 15px; box-sizing: border-box;
             border: 2px solid var(--border-color); border-radius: 8px; font-size: 18px;
-            resize: none; font-family: inherit;
+            resize: none; font-family: inherit; flex-grow: 1;
         }
         
-        #single-input { height: 120px; text-align: center; font-weight: bold;}
-        #batch-input { flex-grow: 1; min-height: 200px; font-size: 14px; white-space: pre-wrap;}
+        #single-input { height: 120px; flex-grow: 0; text-align: center; font-weight: bold; margin-bottom: 10px;}
+        #batch-input { font-size: 14px; white-space: pre-wrap; margin-bottom: 10px;}
 
-        .input-hint { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: -10px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .input-hint { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: -5px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;}
 
         button {
             border: none; border-radius: 8px; font-weight: bold; font-size: 14px;
             padding: 15px; cursor: pointer; text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: opacity 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: opacity 0.2s; flex-shrink: 0;
         }
         button:active { opacity: 0.7; transform: translateY(1px); box-shadow: none; }
 
-        .btn-save { background: var(--blue-accent); color: white; width: 100%; font-size: 16px; padding: 20px;}
-        .btn-secondary { background: #e8ecf1; color: var(--text-dark); border: 1px solid var(--border-color); width: 100%; margin-top: 10px;}
-        .btn-review { background: #2da44e; color: white; width: 100%; margin-top: auto; padding: 20px;}
+        .btn-primary { background: var(--blue-accent); color: white; width: 100%; font-size: 16px; margin-bottom: 10px;}
+        .btn-secondary { background: #e8ecf1; color: var(--text-dark); border: 1px solid var(--border-color); width: 100%; margin-bottom: 10px;}
+        .btn-review { background: #2da44e; color: white; width: 100%; padding: 20px; font-size: 18px; margin-top: auto;}
+
+        .row-btns { display: flex; gap: 10px; margin-bottom: 10px; flex-shrink: 0;}
+        .row-btns button { flex: 1; margin: 0; padding: 12px; font-size: 12px;}
+
+        /* --- LIBRARY VIEW --- */
+        .library-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .lib-item { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; text-align: left; display: flex; flex-direction: column;}
+        .lib-title { font-size: 16px; font-weight: bold; color: var(--blue-accent); margin-bottom: 4px;}
+        .lib-desc { font-size: 12px; color: var(--text-dim);}
 
         /* --- PLAYBACK VIEW --- */
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0;}
         .btn-exit { background: transparent; border: 1px solid var(--border-color); padding: 10px 15px; font-size: 12px; }
         .timer-display { font-size: 24px; font-weight: 900; color: var(--blue-accent); font-variant-numeric: tabular-nums; }
 
@@ -68,40 +80,66 @@
             background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 12px;
             flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
             padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            margin-bottom: 20px; overflow-y: auto;
+            margin-bottom: 15px; overflow-y: auto;
         }
         
-        /* HUGE TEXT FOR SHORT PHRASES */
-        .card-term { font-size: 42px; line-height: 1.1; font-weight: 900; color: var(--text-dark); word-break: break-word;}
+        .card-term { font-size: 38px; line-height: 1.1; font-weight: 900; color: var(--text-dark); word-break: break-word;}
 
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
-        .btn-ctrl { background: #ffffff; border: 1px solid var(--border-color); font-size: 18px; flex: 1; padding: 20px 0; }
+        .controls { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0;}
+        .btn-ctrl { background: #ffffff; border: 1px solid var(--border-color); font-size: 18px; flex: 1; padding: 15px 0; }
         .btn-playpause { background: var(--blue-accent); color: white; border: none; flex: 2; font-size: 18px;}
 
-        .settings-panel { background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;}
-        .slider-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 12px; font-weight: bold; color: var(--text-dim); text-transform: uppercase;}
-        input[type=range] { width: 100%; accent-color: var(--blue-accent); margin-bottom: 15px;}
+        .settings-panel { background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; flex-shrink: 0; overflow-y: auto; max-height: 180px;}
         
-        .voice-toggle { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 10px;}
+        .slider-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 11px; font-weight: bold; color: var(--text-dim); text-transform: uppercase;}
+        input[type=range] { width: 100%; accent-color: var(--blue-accent); margin-bottom: 12px;}
         
-        .row-btns { display: flex; gap: 10px; margin-bottom: 10px;}
+        .voice-toggle { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px;}
     </style>
 </head>
 <body>
 
     <div id="capture-view" class="view-container">
         <div class="header">
-            <h1>MemoFlash</h1>
+            <h1>MemoFlash v0.02</h1>
             <p>Quick capture now. Memorize later.</p>
         </div>
 
         <textarea id="single-input" placeholder="Paste short phrase here..."></textarea>
-        <div class="input-hint">Keep it brief (under 30 characters ideal)</div>
+        <div class="input-hint">Keep it brief for best text-to-speech results</div>
 
-        <button class="btn-save" onclick="saveSingleMemo()">SAVE PHRASE</button>
-        <button class="btn-secondary" onclick="showView('batch-view')">BATCH IMPORT / EXPORT</button>
+        <button class="btn-primary" onclick="saveSingleMemo()">SAVE PHRASE</button>
+        
+        <div class="row-btns">
+            <button class="btn-secondary" onclick="showView('library-view')">📚 PRE-LOADED LISTS</button>
+            <button class="btn-secondary" onclick="showView('batch-view')">⚙ DATABASE MANAGER</button>
+        </div>
 
         <button class="btn-review" onclick="startReviewMode()">START FLASHCARDS (<span id="count-display">0</span>)</button>
+    </div>
+
+    <div id="library-view" class="view-container">
+        <div class="header">
+            <h1>Recommended Lists</h1>
+            <p>Tap to load instantly.</p>
+        </div>
+
+        <div class="library-list">
+            <button class="lib-item" onclick="loadLibrary('states')">
+                <span class="lib-title">50 States & Capitals</span>
+                <span class="lib-desc">Standard alphabetical order.</span>
+            </button>
+            <button class="lib-item" onclick="loadLibrary('presidents')">
+                <span class="lib-title">US Presidents</span>
+                <span class="lib-desc">Chronological order with years served.</span>
+            </button>
+            <button class="lib-item" onclick="loadLibrary('guitar')">
+                <span class="lib-title">Standard Guitar Tuning</span>
+                <span class="lib-desc">Low E to High E string notes.</span>
+            </button>
+        </div>
+
+        <button class="btn-secondary" style="margin-top: auto;" onclick="showView('capture-view')">← BACK TO HOME</button>
     </div>
 
     <div id="batch-view" class="view-container">
@@ -110,11 +148,16 @@
             <p>One phrase per line.</p>
         </div>
 
+        <div class="row-btns" style="margin-bottom: 5px;">
+            <button class="btn-secondary" onclick="sortBatch('az')">SORT A-Z</button>
+            <button class="btn-secondary" onclick="sortBatch('za')">SORT Z-A</button>
+        </div>
+
         <textarea id="batch-input" placeholder="Paste a list here, or copy your saved list out..."></textarea>
 
         <div class="row-btns">
-            <button class="btn-save" style="flex: 1; padding: 15px; font-size: 14px;" onclick="importBatch()">IMPORT LIST</button>
-            <button class="btn-secondary" style="flex: 1; margin: 0; padding: 15px; font-size: 14px;" onclick="copyBatch()">COPY ALL</button>
+            <button class="btn-primary" onclick="importBatch()">IMPORT & SAVE</button>
+            <button class="btn-secondary" onclick="copyBatch()">COPY ALL</button>
         </div>
         
         <button class="btn-secondary" onclick="showView('capture-view')">← BACK TO HOME</button>
@@ -137,25 +180,36 @@
         </div>
 
         <div class="settings-panel">
+            <div class="voice-toggle">
+                <span style="font-size: 13px; font-weight: 900; color: var(--text-dark);">VOICE READER</span>
+                <button id="voice-btn" style="padding: 6px 15px; font-size: 14px; background: #e8ecf1; width: auto;" onclick="toggleVoice()">🔇 OFF</button>
+            </div>
+
+            <div class="slider-row">
+                <span>Voice Speed</span>
+                <span id="speed-val">Normal</span>
+            </div>
+            <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateSpeed(this.value)">
+
             <div class="slider-row">
                 <span>Display Tempo</span>
                 <span id="tempo-val">5 Seconds</span>
             </div>
             <input type="range" id="tempo-slider" min="1" max="15" value="5" oninput="updateTempo(this.value)">
-            
-            <div class="voice-toggle">
-                <span style="font-size: 12px; font-weight: bold; color: var(--text-dim); text-transform: uppercase;">Voice Reader (Text-to-Speech)</span>
-                <button id="voice-btn" style="padding: 5px 15px; font-size: 16px; background: #e8ecf1;" onclick="toggleVoice()">🔇 OFF</button>
-            </div>
         </div>
     </div>
 
 <script>
+    // --- PRESET LIBRARY DATA ---
+    const libraryData = {
+        states: "Alabama, Montgomery\nAlaska, Juneau\nArizona, Phoenix\nArkansas, Little Rock\nCalifornia, Sacramento\nColorado, Denver\nConnecticut, Hartford\nDelaware, Dover\nFlorida, Tallahassee\nGeorgia, Atlanta\nHawaii, Honolulu\nIdaho, Boise\nIllinois, Springfield\nIndiana, Indianapolis\nIowa, Des Moines\nKansas, Topeka\nKentucky, Frankfort\nLouisiana, Baton Rouge\nMaine, Augusta\nMaryland, Annapolis\nMassachusetts, Boston\nMichigan, Lansing\nMinnesota, St. Paul\nMississippi, Jackson\nMissouri, Jefferson City\nMontana, Helena\nNebraska, Lincoln\nNevada, Carson City\nNew Hampshire, Concord\nNew Jersey, Trenton\nNew Mexico, Santa Fe\nNew York, Albany\nNorth Carolina, Raleigh\nNorth Dakota, Bismarck\nOhio, Columbus\nOklahoma, Oklahoma City\nOregon, Salem\nPennsylvania, Harrisburg\nRhode Island, Providence\nSouth Carolina, Columbia\nSouth Dakota, Pierre\nTennessee, Nashville\nTexas, Austin\nUtah, Salt Lake City\nVermont, Montpelier\nVirginia, Richmond\nWashington, Olympia\nWest Virginia, Charleston\nWisconsin, Madison\nWyoming, Cheyenne",
+        presidents: "1. George Washington (1789-1797)\n2. John Adams (1797-1801)\n3. Thomas Jefferson (1801-1809)\n4. James Madison (1809-1817)\n16. Abraham Lincoln (1861-1865)\n26. Theodore Roosevelt (1901-1909)\n32. Franklin D. Roosevelt (1933-1945)\n35. John F. Kennedy (1961-1963)",
+        guitar: "String 6: Low E\nString 5: A\nString 4: D\nString 3: G\nString 2: B\nString 1: High E"
+    };
+
     // --- STATE MANAGEMENT ---
-    // Load flat array of strings
     let memos = JSON.parse(localStorage.getItem('memoFlashcardsV2')) || [];
     
-    // Playback State
     let playbackDeck = [];
     let historyQueue = [];
     let historyIndex = -1; 
@@ -165,12 +219,14 @@
     let secondsLeft = 5;
     let timerInterval = null;
     let voiceEnabled = false;
+    let voiceSpeed = 1.0;
 
     // --- INITIALIZATION ---
     document.getElementById('count-display').innerText = memos.length;
 
     function showView(viewId) {
         document.getElementById('capture-view').style.display = 'none';
+        document.getElementById('library-view').style.display = 'none';
         document.getElementById('batch-view').style.display = 'none';
         document.getElementById('playback-view').style.display = 'none';
         document.getElementById(viewId).style.display = 'flex';
@@ -190,21 +246,38 @@
         saveData();
         
         input.value = '';
-        const saveBtn = document.querySelector('#capture-view .btn-save');
+        const saveBtn = document.querySelector('#capture-view .btn-primary');
         saveBtn.innerText = "SAVED! ✔";
         setTimeout(() => saveBtn.innerText = "SAVE PHRASE", 1000);
+    }
+
+    function loadLibrary(key) {
+        document.getElementById('batch-input').value = libraryData[key];
+        showView('batch-view');
+    }
+
+    function sortBatch(dir) {
+        const inputArea = document.getElementById('batch-input');
+        let lines = inputArea.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        
+        if(dir === 'az') lines.sort((a, b) => a.localeCompare(b));
+        if(dir === 'za') lines.sort((a, b) => b.localeCompare(a));
+        
+        inputArea.value = lines.join('\n');
     }
 
     function importBatch() {
         const input = document.getElementById('batch-input').value;
         const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
         
-        if (lines.length === 0) return;
+        if (lines.length === 0) {
+            memos = []; // Allow clearing the database
+        } else {
+            memos = lines; 
+        }
         
-        memos = lines; // Overwrites database with the new list
         saveData();
-        
-        alert("Imported " + lines.length + " phrases successfully!");
+        alert("Saved " + lines.length + " phrases successfully!");
         showView('capture-view');
     }
 
@@ -230,8 +303,8 @@
         historyIndex = -1;
         
         tempoSeconds = parseInt(document.getElementById('tempo-slider').value);
+        voiceSpeed = parseFloat(document.getElementById('speed-slider').value);
         
-        // Fix for iOS Web Speech API: Needs a user interaction to 'unlock' audio context
         if(voiceEnabled) {
             let unlockMsg = new SpeechSynthesisUtterance("");
             window.speechSynthesis.speak(unlockMsg);
@@ -243,7 +316,7 @@
 
     function exitReviewMode() {
         pause();
-        window.speechSynthesis.cancel(); // Stop talking
+        window.speechSynthesis.cancel(); 
         showView('capture-view');
     }
 
@@ -254,7 +327,6 @@
             btn.innerText = "🔊 ON";
             btn.style.background = "#ddf4ff";
             btn.style.color = "var(--blue-accent)";
-            // Speak current card immediately if turning on
             speakCard(document.getElementById('card-term-text').innerText);
         } else {
             btn.innerText = "🔇 OFF";
@@ -264,11 +336,16 @@
         }
     }
 
+    function updateSpeed(val) {
+        voiceSpeed = parseFloat(val);
+        document.getElementById('speed-val').innerText = voiceSpeed + "x";
+    }
+
     function speakCard(text) {
         if (!voiceEnabled) return;
-        window.speechSynthesis.cancel(); // Interrupt previous speech
+        window.speechSynthesis.cancel(); 
         let utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9; // Slightly slower for clarity
+        utterance.rate = voiceSpeed; 
         window.speechSynthesis.speak(utterance);
     }
 
