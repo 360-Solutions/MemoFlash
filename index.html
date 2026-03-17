@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MemoFlash v0.1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MemoFlash v0.2</title>
     <style>
         :root {
             --bg-color: #f4f6f8;
@@ -19,32 +19,35 @@
             background-color: var(--bg-color);
             color: var(--text-dark);
             margin: 0; padding: 15px;
+            /* The Notch Fix */
+            padding-top: max(15px, env(safe-area-inset-top)); 
             display: flex; flex-direction: column; align-items: center;
             height: 100vh; box-sizing: border-box;
             user-select: none; -webkit-tap-highlight-color: transparent;
         }
 
-        /* --- CAPTURE VIEW --- */
-        #capture-view { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
-        
+        .view-container {
+            width: 100%; max-width: 400px; display: none; flex-direction: column; height: 100%;
+        }
+        #capture-view { display: flex; gap: 15px; }
+
+        /* --- HEADER --- */
         .header { text-align: center; margin-bottom: 10px; }
         .header h1 { margin: 0; font-size: 24px; color: var(--blue-accent); }
         .header p { margin: 5px 0 0 0; font-size: 13px; color: var(--text-dim); }
 
+        /* --- INPUTS & BUTTONS --- */
         textarea {
-            width: 100%; height: 120px; padding: 12px; box-sizing: border-box;
-            border: 2px solid var(--border-color); border-radius: 8px; font-size: 16px;
+            width: 100%; padding: 15px; box-sizing: border-box;
+            border: 2px solid var(--border-color); border-radius: 8px; font-size: 18px;
             resize: none; font-family: inherit;
         }
         
-        .input-sub {
-            width: 100%; padding: 10px; box-sizing: border-box;
-            border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;
-            margin-top: -5px; font-family: inherit;
-        }
+        #single-input { height: 120px; text-align: center; font-weight: bold;}
+        #batch-input { flex-grow: 1; min-height: 200px; font-size: 14px; white-space: pre-wrap;}
 
-        .btn-row { display: flex; gap: 10px; }
-        
+        .input-hint { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: -10px; text-transform: uppercase; letter-spacing: 0.5px;}
+
         button {
             border: none; border-radius: 8px; font-weight: bold; font-size: 14px;
             padding: 15px; cursor: pointer; text-transform: uppercase;
@@ -52,15 +55,13 @@
         }
         button:active { opacity: 0.7; transform: translateY(1px); box-shadow: none; }
 
-        .btn-action { background: #e8ecf1; color: var(--text-dark); border: 1px solid var(--border-color); flex: 1; }
-        .btn-save { background: var(--blue-accent); color: white; width: 100%; font-size: 16px; margin-top: 10px; }
-        .btn-review { background: #2da44e; color: white; width: 100%; margin-top: 20px; padding: 20px;}
+        .btn-save { background: var(--blue-accent); color: white; width: 100%; font-size: 16px; padding: 20px;}
+        .btn-secondary { background: #e8ecf1; color: var(--text-dark); border: 1px solid var(--border-color); width: 100%; margin-top: 10px;}
+        .btn-review { background: #2da44e; color: white; width: 100%; margin-top: auto; padding: 20px;}
 
         /* --- PLAYBACK VIEW --- */
-        #playback-view { width: 100%; max-width: 400px; display: none; flex-direction: column; height: 100%; }
-        
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-exit { background: transparent; border: 1px solid var(--border-color); padding: 8px 15px; font-size: 12px; }
+        .btn-exit { background: transparent; border: 1px solid var(--border-color); padding: 10px 15px; font-size: 12px; }
         .timer-display { font-size: 24px; font-weight: 900; color: var(--blue-accent); font-variant-numeric: tabular-nums; }
 
         .card {
@@ -70,42 +71,56 @@
             margin-bottom: 20px; overflow-y: auto;
         }
         
-        .card-term { font-size: 28px; font-weight: bold; color: var(--text-dark); margin-bottom: 15px; word-break: break-word;}
-        .card-def { font-size: 16px; color: var(--text-dim); border-top: 1px solid var(--border-color); padding-top: 15px; width: 100%; display: none;}
+        /* HUGE TEXT FOR SHORT PHRASES */
+        .card-term { font-size: 42px; line-height: 1.1; font-weight: 900; color: var(--text-dark); word-break: break-word;}
 
         .controls { display: flex; gap: 10px; margin-bottom: 20px; }
         .btn-ctrl { background: #ffffff; border: 1px solid var(--border-color); font-size: 18px; flex: 1; padding: 20px 0; }
         .btn-playpause { background: var(--blue-accent); color: white; border: none; flex: 2; font-size: 18px;}
 
-        .settings-panel { background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 20px;}
+        .settings-panel { background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;}
         .slider-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 12px; font-weight: bold; color: var(--text-dim); text-transform: uppercase;}
-        input[type=range] { width: 100%; accent-color: var(--blue-accent); }
+        input[type=range] { width: 100%; accent-color: var(--blue-accent); margin-bottom: 15px;}
         
-        .empty-state { text-align: center; color: var(--text-dim); font-size: 16px; padding: 40px 20px; }
+        .voice-toggle { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 10px;}
+        
+        .row-btns { display: flex; gap: 10px; margin-bottom: 10px;}
     </style>
 </head>
 <body>
 
-    <div id="capture-view">
+    <div id="capture-view" class="view-container">
         <div class="header">
             <h1>MemoFlash</h1>
             <p>Quick capture now. Memorize later.</p>
         </div>
 
-        <textarea id="term-input" placeholder="Type or paste the phrase you want to remember..."></textarea>
-        <input type="text" id="def-input" class="input-sub" placeholder="Optional context or definition">
+        <textarea id="single-input" placeholder="Paste short phrase here..."></textarea>
+        <div class="input-hint">Keep it brief (under 30 characters ideal)</div>
 
-        <div class="btn-row">
-            <button class="btn-action" onclick="pasteFromClipboard()">📋 PASTE</button>
-            <button class="btn-action" id="dictate-btn" onclick="startDictation()">🎙 DICTATE</button>
-        </div>
-
-        <button class="btn-save" onclick="saveMemo()">SAVE MEMO</button>
+        <button class="btn-save" onclick="saveSingleMemo()">SAVE PHRASE</button>
+        <button class="btn-secondary" onclick="showView('batch-view')">BATCH IMPORT / EXPORT</button>
 
         <button class="btn-review" onclick="startReviewMode()">START FLASHCARDS (<span id="count-display">0</span>)</button>
     </div>
 
-    <div id="playback-view">
+    <div id="batch-view" class="view-container">
+        <div class="header">
+            <h1 style="font-size: 18px;">Database Manager</h1>
+            <p>One phrase per line.</p>
+        </div>
+
+        <textarea id="batch-input" placeholder="Paste a list here, or copy your saved list out..."></textarea>
+
+        <div class="row-btns">
+            <button class="btn-save" style="flex: 1; padding: 15px; font-size: 14px;" onclick="importBatch()">IMPORT LIST</button>
+            <button class="btn-secondary" style="flex: 1; margin: 0; padding: 15px; font-size: 14px;" onclick="copyBatch()">COPY ALL</button>
+        </div>
+        
+        <button class="btn-secondary" onclick="showView('capture-view')">← BACK TO HOME</button>
+    </div>
+
+    <div id="playback-view" class="view-container">
         <div class="top-bar">
             <button class="btn-exit" onclick="exitReviewMode()">✖ DONE</button>
             <div class="timer-display" id="timer-text">5s</div>
@@ -113,7 +128,6 @@
 
         <div class="card" id="flashcard">
             <div class="card-term" id="card-term-text">Loading...</div>
-            <div class="card-def" id="card-def-text"></div>
         </div>
 
         <div class="controls">
@@ -128,127 +142,139 @@
                 <span id="tempo-val">5 Seconds</span>
             </div>
             <input type="range" id="tempo-slider" min="1" max="15" value="5" oninput="updateTempo(this.value)">
+            
+            <div class="voice-toggle">
+                <span style="font-size: 12px; font-weight: bold; color: var(--text-dim); text-transform: uppercase;">Voice Reader (Text-to-Speech)</span>
+                <button id="voice-btn" style="padding: 5px 15px; font-size: 16px; background: #e8ecf1;" onclick="toggleVoice()">🔇 OFF</button>
+            </div>
         </div>
     </div>
 
 <script>
     // --- STATE MANAGEMENT ---
-    let memos = JSON.parse(localStorage.getItem('memoFlashcards')) || [];
+    // Load flat array of strings
+    let memos = JSON.parse(localStorage.getItem('memoFlashcardsV2')) || [];
     
     // Playback State
     let playbackDeck = [];
     let historyQueue = [];
-    let historyIndex = -1; // Points to current card in historyQueue
+    let historyIndex = -1; 
     
     let isPlaying = false;
     let tempoSeconds = 5;
     let secondsLeft = 5;
     let timerInterval = null;
+    let voiceEnabled = false;
 
     // --- INITIALIZATION ---
     document.getElementById('count-display').innerText = memos.length;
 
-    // --- CAPTURE FUNCTIONS ---
-    async function pasteFromClipboard() {
-        try {
-            const text = await navigator.clipboard.readText();
-            const input = document.getElementById('term-input');
-            input.value = input.value ? input.value + " " + text : text;
-        } catch (err) {
-            alert("Clipboard access denied. You may need to use the standard tap-and-paste method.");
+    function showView(viewId) {
+        document.getElementById('capture-view').style.display = 'none';
+        document.getElementById('batch-view').style.display = 'none';
+        document.getElementById('playback-view').style.display = 'none';
+        document.getElementById(viewId).style.display = 'flex';
+
+        if (viewId === 'batch-view') {
+            document.getElementById('batch-input').value = memos.join('\n');
         }
     }
 
-    function startDictation() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            alert("Voice dictation is not supported by your browser. Please use the microphone button on your digital keyboard.");
-            return;
-        }
-        
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        
-        const dictBtn = document.getElementById('dictate-btn');
-        dictBtn.innerText = "🔴 LISTENING...";
-        dictBtn.style.color = "red";
-
-        recognition.onresult = function(event) {
-            const transcript = event.results[0][0].transcript;
-            const input = document.getElementById('term-input');
-            input.value = input.value ? input.value + " " + transcript : transcript;
-            resetDictateBtn(dictBtn);
-        };
-
-        recognition.onerror = function(event) {
-            resetDictateBtn(dictBtn);
-        };
-
-        recognition.onend = function() {
-            resetDictateBtn(dictBtn);
-        };
-
-        recognition.start();
-    }
-
-    function resetDictateBtn(btn) {
-        btn.innerText = "🎙 DICTATE";
-        btn.style.color = "";
-    }
-
-    function saveMemo() {
-        const termInput = document.getElementById('term-input');
-        const defInput = document.getElementById('def-input');
-        const term = termInput.value.trim();
-        const def = defInput.value.trim();
-
+    // --- DATA HANDLING ---
+    function saveSingleMemo() {
+        const input = document.getElementById('single-input');
+        const term = input.value.trim();
         if (!term) return;
 
-        memos.push({ id: Date.now(), term: term, def: def });
-        localStorage.setItem('memoFlashcards', JSON.stringify(memos));
+        memos.push(term);
+        saveData();
         
-        document.getElementById('count-display').innerText = memos.length;
-        termInput.value = '';
-        defInput.value = '';
-        
-        // Brief visual feedback
-        const saveBtn = document.querySelector('.btn-save');
+        input.value = '';
+        const saveBtn = document.querySelector('#capture-view .btn-save');
         saveBtn.innerText = "SAVED! ✔";
-        setTimeout(() => saveBtn.innerText = "SAVE MEMO", 1000);
+        setTimeout(() => saveBtn.innerText = "SAVE PHRASE", 1000);
+    }
+
+    function importBatch() {
+        const input = document.getElementById('batch-input').value;
+        const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        
+        if (lines.length === 0) return;
+        
+        memos = lines; // Overwrites database with the new list
+        saveData();
+        
+        alert("Imported " + lines.length + " phrases successfully!");
+        showView('capture-view');
+    }
+
+    function copyBatch() {
+        const input = document.getElementById('batch-input');
+        input.select();
+        document.execCommand('copy');
+        alert("List copied to clipboard!");
+    }
+
+    function saveData() {
+        localStorage.setItem('memoFlashcardsV2', JSON.stringify(memos));
+        document.getElementById('count-display').innerText = memos.length;
     }
 
     // --- PLAYBACK ENGINE ---
     function startReviewMode() {
-        if (memos.length === 0) {
-            alert("You need to save at least one phrase first!");
-            return;
-        }
+        if (memos.length === 0) { alert("Save some phrases first!"); return; }
 
-        document.getElementById('capture-view').style.display = 'none';
-        document.getElementById('playback-view').style.display = 'flex';
-
-        // Shuffle deck
+        showView('playback-view');
         playbackDeck = [...memos].sort(() => Math.random() - 0.5);
         historyQueue = [];
         historyIndex = -1;
         
         tempoSeconds = parseInt(document.getElementById('tempo-slider').value);
         
+        // Fix for iOS Web Speech API: Needs a user interaction to 'unlock' audio context
+        if(voiceEnabled) {
+            let unlockMsg = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(unlockMsg);
+        }
+
         loadNextCard();
         play();
     }
 
     function exitReviewMode() {
         pause();
-        document.getElementById('playback-view').style.display = 'none';
-        document.getElementById('capture-view').style.display = 'flex';
+        window.speechSynthesis.cancel(); // Stop talking
+        showView('capture-view');
+    }
+
+    function toggleVoice() {
+        voiceEnabled = !voiceEnabled;
+        const btn = document.getElementById('voice-btn');
+        if (voiceEnabled) {
+            btn.innerText = "🔊 ON";
+            btn.style.background = "#ddf4ff";
+            btn.style.color = "var(--blue-accent)";
+            // Speak current card immediately if turning on
+            speakCard(document.getElementById('card-term-text').innerText);
+        } else {
+            btn.innerText = "🔇 OFF";
+            btn.style.background = "#e8ecf1";
+            btn.style.color = "var(--text-dark)";
+            window.speechSynthesis.cancel();
+        }
+    }
+
+    function speakCard(text) {
+        if (!voiceEnabled) return;
+        window.speechSynthesis.cancel(); // Interrupt previous speech
+        let utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9; // Slightly slower for clarity
+        window.speechSynthesis.speak(utterance);
     }
 
     function updateTempo(val) {
         tempoSeconds = parseInt(val);
         document.getElementById('tempo-val').innerText = tempoSeconds + " Seconds";
-        // If user speeds it up past the current remaining seconds, adjust immediately
         if (secondsLeft > tempoSeconds) secondsLeft = tempoSeconds;
         renderTimer();
     }
@@ -277,32 +303,20 @@
     function tickTimer() {
         secondsLeft--;
         renderTimer();
-        if (secondsLeft <= 0) {
-            loadNextCard();
-        }
+        if (secondsLeft <= 0) { loadNextCard(); }
     }
 
-    function renderCard(memoObj) {
-        document.getElementById('card-term-text').innerText = memoObj.term;
-        const defBox = document.getElementById('card-def-text');
-        
-        if (memoObj.def) {
-            defBox.innerText = memoObj.def;
-            defBox.style.display = 'block';
-        } else {
-            defBox.style.display = 'none';
-        }
+    function renderCard(text) {
+        document.getElementById('card-term-text').innerText = text;
+        speakCard(text);
     }
 
     function loadNextCard() {
-        // If we are looking at history and there is a "next" card already in history, go forward in history
         if (historyIndex < historyQueue.length - 1) {
             historyIndex++;
             renderCard(historyQueue[historyIndex]);
         } else {
-            // Draw a new card from the shuffled deck
             if (playbackDeck.length === 0) {
-                // Reshuffle if empty
                 playbackDeck = [...memos].sort(() => Math.random() - 0.5);
             }
             const nextMemo = playbackDeck.pop();
@@ -310,14 +324,13 @@
             historyIndex = historyQueue.length - 1;
             renderCard(nextMemo);
         }
-        
         secondsLeft = tempoSeconds;
         renderTimer();
     }
 
     function skipCard() {
         loadNextCard();
-        if(!isPlaying) play(); // Auto-play if they skip manually while paused
+        if(!isPlaying) play(); 
     }
 
     function rewindCard() {
@@ -333,4 +346,3 @@
 </script>
 </body>
 </html>
-
