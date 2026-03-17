@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MemoFlash v0.05</title>
+    <title>MemoFlash v0.051</title>
     <style>
+        /* CSS VARIABLES: Easy for "Jeremiah" to change colors later */
         :root {
             --bg-color: #f4f6f8;
             --panel-bg: #ffffff;
@@ -14,11 +15,13 @@
             --border-color: #d0d7de;
         }
 
+        /* RESET & BASE STYLES */
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-dark);
             margin: 0; padding: 15px;
+            /* iPhone Notch/Home Indicator Support */
             padding-top: max(15px, env(safe-area-inset-top)); 
             padding-bottom: max(15px, env(safe-area-inset-bottom));
             min-height: 100vh; width: 100vw; box-sizing: border-box;
@@ -26,6 +29,7 @@
             user-select: none; -webkit-tap-highlight-color: transparent;
         }
 
+        /* VIEW CONTAINERS */
         .view-container {
             width: 100%; max-width: 400px; margin: 0 auto; 
             display: none; flex-direction: column; gap: 15px;
@@ -36,43 +40,44 @@
         .header { text-align: center; }
         .header h1 { margin: 0; font-size: 26px; color: var(--blue-accent); font-weight: 900; letter-spacing: -0.5px;}
 
+        /* ACTIVE LIST HEADER */
         .active-list-bar { background: #ddf4ff; border: 1px solid #54aeff; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; }
         .active-list-label { font-size: 10px; color: var(--blue-accent); text-transform: uppercase; font-weight: 900;}
         .active-list-name { font-size: 16px; font-weight: bold; color: var(--text-dark); margin-top: 2px;}
 
+        /* INPUT FIELDS */
         textarea {
             width: 100%; padding: 15px; box-sizing: border-box;
             border: 2px solid var(--border-color); border-radius: 8px; font-size: 18px;
             resize: none; font-family: inherit;
         }
-        
         #single-input { height: 100px; text-align: center; font-weight: bold;}
         #batch-input { font-size: 14px; white-space: pre-wrap; height: 300px;}
 
+        /* BUTTONS */
         button {
             border: none; border-radius: 8px; font-weight: bold; font-size: 14px;
             padding: 15px; cursor: pointer; text-transform: uppercase;
         }
-
         .btn-primary { background: var(--blue-accent); color: white; width: 100%; }
         .btn-secondary { background: #e8ecf1; color: var(--text-dark); border: 1px solid var(--border-color); width: 100%; }
         .btn-review { background: #2da44e; color: white; width: 100%; padding: 18px; font-size: 18px; margin-top: 10px; border-bottom: 4px solid #238636;}
 
-        .or-divider { text-align: center; font-weight: 900; color: var(--border-color); font-size: 14px; margin: 5px 0;}
-
-        /* LIBRARY */
+        /* LIBRARY STYLING */
+        .lib-section-title { font-size: 10px; font-weight: 900; color: var(--text-dim); text-transform: uppercase; margin-bottom: 5px; margin-top: 15px;}
         .library-list { display: flex; flex-direction: column; gap: 8px; }
         .lib-item { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; text-align: left; display: flex; justify-content: space-between; align-items: center;}
         .lib-title { font-size: 15px; font-weight: bold;}
         .lib-desc { font-size: 10px; color: var(--text-dim);}
 
-        /* PLAYBACK */
+        /* PLAYBACK CARD STYLING */
         .card {
             background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 12px;
             min-height: 200px; display: flex; justify-content: center; align-items: center;
             padding: 20px; text-align: center; margin: 15px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
-        .card-term { font-size: 32px; font-weight: 900; }
+        .card-term { font-size: 32px; font-weight: 900; line-height: 1.1; }
 
         .settings-panel { background: #ffffff; border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; font-size: 12px;}
         input[type=range] { width: 100%; accent-color: var(--blue-accent); }
@@ -81,7 +86,7 @@
 <body>
 
     <div id="capture-view" class="view-container">
-        <div class="header"><h1>MemoFlash v0.05</h1></div>
+        <div class="header"><h1>MemoFlash v0.051</h1></div>
 
         <div class="active-list-bar" onclick="renameCurrentList()">
             <div class="active-list-label">Current Study List:</div>
@@ -91,7 +96,7 @@
         <textarea id="single-input" placeholder="Paste phrase or word..."></textarea>
         <button class="btn-primary" onclick="saveSingleMemo()">➕ ADD TO LIST</button>
         
-        <div class="or-divider">OR</div>
+        <div style="text-align:center; color:var(--border-color); font-weight:900; margin:5px 0;">OR</div>
         <button class="btn-secondary" onclick="showView('batch-view')">📝 PASTE LARGE LIST</button>
         <button class="btn-secondary" onclick="showView('library-view')" style="margin-top:10px;">📚 SAVED LISTS</button>
 
@@ -100,8 +105,21 @@
 
     <div id="library-view" class="view-container">
         <div class="header"><h1>My Library</h1></div>
+        
+        <div class="lib-section-title">Your Lists</div>
         <div id="user-lists-container" class="library-list"></div>
-        <button class="btn-secondary" onclick="createNewList()">＋ NEW EMPTY LIST</button>
+        
+        <div class="lib-section-title">Factory Presets</div>
+        <div class="library-list">
+            <button class="lib-item" onclick="loadPreset('states')">
+                <div><div class="lib-title">50 States & Capitals</div><div class="lib-desc">US Geography</div></div>
+            </button>
+            <button class="lib-item" onclick="loadPreset('presidents')">
+                <div><div class="lib-title">US Presidents</div><div class="lib-desc">1 to 47 (Chronological)</div></div>
+            </button>
+        </div>
+
+        <button class="btn-secondary" onclick="createNewList()" style="margin-top:20px;">＋ NEW EMPTY LIST</button>
         <button class="btn-secondary" onclick="showView('capture-view')">← BACK</button>
     </div>
 
@@ -133,6 +151,19 @@
     </div>
 
 <script>
+    /* 1. DATA STORAGE & PRESETS */
+    const presets = {
+        states: { 
+            name: "50 States & Capitals", 
+            data: "Alabama: Montgomery\nAlaska: Juneau\nArizona: Phoenix\nArkansas: Little Rock\nCalifornia: Sacramento\nColorado: Denver\nConnecticut: Hartford\nDelaware: Dover\nFlorida: Tallahassee\nGeorgia: Atlanta\nHawaii: Honolulu\nIdaho: Boise\nIllinois: Springfield\nIndiana: Indianapolis\nIowa: Des Moines\nKansas: Topeka\nKentucky: Frankfort\nLouisiana: Baton Rouge\nMaine: Augusta\nMaryland: Annapolis\nMassachusetts: Boston\nMichigan: Lansing\nMinnesota: St. Paul\nMississippi: Jackson\nMissouri: Jefferson City\nMontana: Helena\nNebraska: Lincoln\nNevada: Carson City\nNew Hampshire: Concord\nNew Jersey: Trenton\nNew Mexico: Santa Fe\nNew York: Albany\nNorth Carolina: Raleigh\nNorth Dakota: Bismarck\nOhio: Columbus\nOklahoma: Oklahoma City\nOregon: Salem\nPennsylvania: Harrisburg\nRhode Island: Providence\nSouth Carolina: Columbia\nSouth Dakota: Pierre\nTennessee: Nashville\nTexas: Austin\nUtah: Salt Lake City\nVermont: Montpelier\nVirginia: Richmond\nWashington: Olympia\nWest Virginia: Charleston\nWisconsin: Madison\nWyoming: Cheyenne" 
+        },
+        presidents: { 
+            name: "US Presidents (1-47)", 
+            data: "1. George Washington 1789 to 1797\n2. John Adams 1797 to 1801\n3. Thomas Jefferson 1801 to 1809\n4. James Madison 1809 to 1817\n5. James Monroe 1817 to 1825\n6. John Quincy Adams 1825 to 1829\n7. Andrew Jackson 1829 to 1837\n8. Martin Van Buren 1837 to 1841\n9. William Henry Harrison 1841\n10. John Tyler 1841 to 1845\n11. James K. Polk 1845 to 1849\n12. Zachary Taylor 1849 to 1850\n13. Millard Fillmore 1850 to 1853\n14. Franklin Pierce 1853 to 1857\n15. James Buchanan 1857 to 1861\n16. Abraham Lincoln 1861 to 1865\n17. Andrew Johnson 1865 to 1869\n18. Ulysses S. Grant 1869 to 1877\n19. Rutherford B. Hayes 1877 to 1881\n20. James A. Garfield 1881\n21. Chester A. Arthur 1881 to 1885\n22. Grover Cleveland 1885 to 1889\n23. Benjamin Harrison 1889 to 1893\n24. Grover Cleveland 1893 to 1897\n25. William McKinley 1897 to 1901\n26. Theodore Roosevelt 1901 to 1909\n27. William Howard Taft 1909 to 1913\n28. Woodrow Wilson 1913 to 1921\n29. Warren G. Harding 1921 to 1923\n30. Calvin Coolidge 1923 to 1929\n31. Herbert Hoover 1929 to 1933\n32. Franklin D. Roosevelt 1933 to 1945\n33. Harry S. Truman 1945 to 1953\n34. Dwight D. Eisenhower 1953 to 1961\n35. John F. Kennedy 1961 to 1963\n36. Lyndon B. Johnson 1963 to 1969\n37. Richard Nixon 1969 to 1974\n38. Gerald Ford 1974 to 1977\n39. Jimmy Carter 1977 to 1981\n40. Ronald Reagan 1981 to 1989\n41. George H.W. Bush 1989 to 1993\n42. Bill Clinton 1993 to 2001\n43. George W. Bush 2001 to 2009\n44. Barack Obama 2009 to 2017\n45. Donald Trump 2017 to 2021\n46. Joe Biden 2021 to 2025\n47. Donald Trump 2025 to Present" 
+        }
+    };
+
+    // Initialize the main app object from LocalStorage
     let app = JSON.parse(localStorage.getItem('memoFlashV5')) || {
         activeId: 'default',
         lists: { 'default': { name: "Quick Captures", items: [], created: new Date().toLocaleString() } },
@@ -141,8 +172,10 @@
         tempo: 3
     };
 
+    /* 2. APP STATE & PLAYBACK VARIABLES */
     let deck = [], history = [], hIndex = -1, timer = null, isPaused = false, countdown = app.tempo;
 
+    // Sync UI with stored settings on boot
     window.onload = () => {
         updateUI();
         document.getElementById('speed-slider').value = app.speed;
@@ -152,6 +185,7 @@
         updateVoiceBtn();
     };
 
+    /* 3. CORE SAVE/LOAD FUNCTIONS */
     function save() {
         localStorage.setItem('memoFlashV5', JSON.stringify(app));
         updateUI();
@@ -170,6 +204,7 @@
         if (id === 'library-view') renderLib();
     }
 
+    /* 4. LIST MANAGEMENT */
     function saveSingleMemo() {
         const val = document.getElementById('single-input').value.trim();
         if (val) {
@@ -197,6 +232,18 @@
         }
     }
 
+    function loadPreset(key) {
+        const id = 'L' + Date.now();
+        app.lists[id] = { 
+            name: presets[key].name, 
+            items: presets[key].data.split('\n'),
+            created: new Date().toLocaleString() 
+        };
+        app.activeId = id;
+        save();
+        showView('capture-view');
+    }
+
     function renderLib() {
         const container = document.getElementById('user-lists-container');
         container.innerHTML = '';
@@ -215,19 +262,22 @@
         if (n) { app.lists[app.activeId].name = n; save(); }
     }
 
-    /* ENGINE */
+    /* 5. AUDIO PLAYBACK ENGINE */
     function startReviewMode() {
         if (!app.lists[app.activeId].items.length) return;
         showView('playback-view');
+        // Shuffle the deck for randomization
         deck = [...app.lists[app.activeId].items].sort(() => Math.random() - 0.5);
         history = []; hIndex = -1; isPaused = false;
         next();
         tick();
     }
 
+    // The core timer loop
     function tick() {
         clearInterval(timer);
         timer = setInterval(() => {
+            // Wait if paused or if the phone is still speaking
             if (isPaused || (app.voice && window.speechSynthesis.speaking)) return;
             countdown--;
             document.getElementById('timer-text').innerText = countdown + 's';
@@ -239,6 +289,7 @@
         if (hIndex < history.length - 1) {
             hIndex++;
         } else {
+            // If deck is empty, reshuffle and start over
             if (deck.length === 0) deck = [...app.lists[app.activeId].items].sort(() => Math.random() - 0.5);
             history.push(deck.pop());
             hIndex = history.length - 1;
