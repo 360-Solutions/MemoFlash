@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MemoFlash v0.02</title>
+    <title>MemoFlash v0.03</title>
     <style>
         :root {
             --bg-color: #f4f6f8;
@@ -14,7 +14,7 @@
             --border-color: #d0d7de;
         }
 
-        /* LOCKED VIEWPORT CSS - Prevents buttons from falling off screen */
+        /* LOCKED VIEWPORT CSS - Hugs top, no forced bottom alignment */
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg-color);
@@ -22,78 +22,86 @@
             margin: 0; padding: 15px;
             padding-top: max(15px, env(safe-area-inset-top)); 
             padding-bottom: max(15px, env(safe-area-inset-bottom));
-            height: 100vh; width: 100vw; box-sizing: border-box;
-            overflow: hidden; 
+            min-height: 100vh; width: 100vw; box-sizing: border-box;
+            overflow-x: hidden; overflow-y: auto;
             user-select: none; -webkit-tap-highlight-color: transparent;
         }
 
         .view-container {
             width: 100%; max-width: 400px; margin: 0 auto; 
-            display: none; flex-direction: column; height: 100%;
+            display: none; flex-direction: column; gap: 15px;
         }
         
         #capture-view { display: flex; }
 
         /* --- HEADER --- */
-        .header { text-align: center; margin-bottom: 15px; flex-shrink: 0; }
-        .header h1 { margin: 0; font-size: 24px; color: var(--blue-accent); }
-        .header p { margin: 5px 0 0 0; font-size: 13px; color: var(--text-dim); }
+        .header { text-align: center; }
+        .header h1 { margin: 0; font-size: 26px; color: var(--blue-accent); font-weight: 900; letter-spacing: -0.5px;}
+        .header p { margin: 2px 0 0 0; font-size: 12px; color: var(--text-dim); text-transform: uppercase; font-weight: bold;}
+
+        /* --- ACTIVE LIST INDICATOR --- */
+        .active-list-bar { background: #ddf4ff; border: 1px solid #54aeff; border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 5px;}
+        .active-list-label { font-size: 10px; color: var(--blue-accent); text-transform: uppercase; font-weight: 900;}
+        .active-list-name { font-size: 16px; font-weight: bold; color: var(--text-dark); display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2px;}
+        .edit-icon { font-size: 12px; opacity: 0.5; cursor: pointer;}
 
         /* --- INPUTS & BUTTONS --- */
         textarea {
             width: 100%; padding: 15px; box-sizing: border-box;
             border: 2px solid var(--border-color); border-radius: 8px; font-size: 18px;
-            resize: none; font-family: inherit; flex-grow: 1;
+            resize: none; font-family: inherit;
         }
         
-        #single-input { height: 120px; flex-grow: 0; text-align: center; font-weight: bold; margin-bottom: 10px;}
-        #batch-input { font-size: 14px; white-space: pre-wrap; margin-bottom: 10px;}
-
-        .input-hint { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: -5px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;}
+        #single-input { height: 100px; text-align: center; font-weight: bold;}
+        #batch-input { font-size: 14px; white-space: pre-wrap; height: 250px;}
 
         button {
             border: none; border-radius: 8px; font-weight: bold; font-size: 14px;
             padding: 15px; cursor: pointer; text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: opacity 0.2s; flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: transform 0.1s;
         }
-        button:active { opacity: 0.7; transform: translateY(1px); box-shadow: none; }
+        button:active { transform: translateY(2px); box-shadow: none; }
 
-        .btn-primary { background: var(--blue-accent); color: white; width: 100%; font-size: 16px; margin-bottom: 10px;}
-        .btn-secondary { background: #e8ecf1; color: var(--text-dark); border: 1px solid var(--border-color); width: 100%; margin-bottom: 10px;}
-        .btn-review { background: #2da44e; color: white; width: 100%; padding: 20px; font-size: 18px; margin-top: auto;}
+        .btn-primary { background: var(--blue-accent); color: white; width: 100%; font-size: 15px; }
+        .btn-secondary { background: #e8ecf1; color: var(--text-dark); border: 1px solid var(--border-color); width: 100%; }
+        .btn-review { background: #2da44e; color: white; width: 100%; padding: 18px; font-size: 18px; margin-top: 10px; border-bottom: 4px solid #238636;}
+        
+        .row-btns { display: flex; gap: 10px; }
+        .row-btns button { flex: 1; padding: 12px; font-size: 12px;}
 
-        .row-btns { display: flex; gap: 10px; margin-bottom: 10px; flex-shrink: 0;}
-        .row-btns button { flex: 1; margin: 0; padding: 12px; font-size: 12px;}
+        .or-divider { text-align: center; font-weight: 900; color: var(--border-color); font-size: 18px; letter-spacing: 2px; margin: 5px 0;}
 
         /* --- LIBRARY VIEW --- */
-        .library-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-        .lib-item { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; text-align: left; display: flex; flex-direction: column;}
-        .lib-title { font-size: 16px; font-weight: bold; color: var(--blue-accent); margin-bottom: 4px;}
-        .lib-desc { font-size: 12px; color: var(--text-dim);}
+        .lib-section-title { font-size: 13px; font-weight: 900; color: var(--text-dim); text-transform: uppercase; margin-bottom: 5px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;}
+        .library-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        .lib-item { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; text-align: left; display: flex; justify-content: space-between; align-items: center;}
+        .lib-text-zone { display: flex; flex-direction: column;}
+        .lib-title { font-size: 15px; font-weight: bold; color: var(--text-dark); margin-bottom: 2px;}
+        .lib-desc { font-size: 11px; color: var(--text-dim);}
+        .lib-badge { background: #e8ecf1; padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; color: var(--text-dim);}
 
         /* --- PLAYBACK VIEW --- */
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0;}
-        .btn-exit { background: transparent; border: 1px solid var(--border-color); padding: 10px 15px; font-size: 12px; }
+        #playback-view { height: 90vh; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;}
+        .btn-exit { background: transparent; border: 2px solid var(--border-color); padding: 8px 15px; font-size: 12px; color: var(--text-dim); font-weight: 900;}
         .timer-display { font-size: 24px; font-weight: 900; color: var(--blue-accent); font-variant-numeric: tabular-nums; }
 
         .card {
             background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 12px;
             flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
             padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            margin-bottom: 15px; overflow-y: auto;
+            overflow-y: auto;
         }
         
         .card-term { font-size: 38px; line-height: 1.1; font-weight: 900; color: var(--text-dark); word-break: break-word;}
 
-        .controls { display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0;}
-        .btn-ctrl { background: #ffffff; border: 1px solid var(--border-color); font-size: 18px; flex: 1; padding: 15px 0; }
+        .controls { display: flex; gap: 10px; flex-shrink: 0;}
+        .btn-ctrl { background: #ffffff; border: 2px solid var(--border-color); font-size: 22px; flex: 1; padding: 15px 0; color: var(--text-dark);}
         .btn-playpause { background: var(--blue-accent); color: white; border: none; flex: 2; font-size: 18px;}
 
-        .settings-panel { background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; flex-shrink: 0; overflow-y: auto; max-height: 180px;}
-        
-        .slider-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 11px; font-weight: bold; color: var(--text-dim); text-transform: uppercase;}
+        .settings-panel { background: #ffffff; border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; flex-shrink: 0;}
+        .slider-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 11px; font-weight: 900; color: var(--text-dim); text-transform: uppercase;}
         input[type=range] { width: 100%; accent-color: var(--blue-accent); margin-bottom: 12px;}
-        
         .voice-toggle { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px;}
     </style>
 </head>
@@ -101,66 +109,71 @@
 
     <div id="capture-view" class="view-container">
         <div class="header">
-            <h1>MemoFlash v0.02</h1>
-            <p>Quick capture now. Memorize later.</p>
+            <h1>MemoFlash v0.03</h1>
         </div>
 
-        <textarea id="single-input" placeholder="Paste short phrase here..."></textarea>
-        <div class="input-hint">Keep it brief for best text-to-speech results</div>
+        <div class="active-list-bar" onclick="renameCurrentList()">
+            <div class="active-list-label">Currently Adding To:</div>
+            <div class="active-list-name"><span id="active-list-title-display">Quick Captures</span> <span class="edit-icon">✎</span></div>
+        </div>
 
-        <button class="btn-primary" onclick="saveSingleMemo()">SAVE PHRASE</button>
+        <textarea id="single-input" placeholder="Paste a single phrase here..."></textarea>
+        <button class="btn-primary" onclick="saveSingleMemo()">➕ ADD TO LIST</button>
         
-        <div class="row-btns">
-            <button class="btn-secondary" onclick="showView('library-view')">📚 PRE-LOADED LISTS</button>
-            <button class="btn-secondary" onclick="showView('batch-view')">⚙ DATABASE MANAGER</button>
-        </div>
+        <div class="or-divider">OR</div>
 
-        <button class="btn-review" onclick="startReviewMode()">START FLASHCARDS (<span id="count-display">0</span>)</button>
+        <button class="btn-secondary" onclick="showView('batch-view')">📝 PASTE A BATCH LIST</button>
+        
+        <div class="or-divider">OR</div>
+
+        <button class="btn-secondary" onclick="showView('library-view')">📚 LOAD FROM LIBRARY</button>
+
+        <button class="btn-review" onclick="startReviewMode()">▶ START FLASHCARDS (<span id="count-display">0</span>)</button>
     </div>
 
     <div id="library-view" class="view-container">
         <div class="header">
-            <h1>Recommended Lists</h1>
-            <p>Tap to load instantly.</p>
+            <h1>List Library</h1>
         </div>
 
+        <div class="lib-section-title">My Saved Lists</div>
+        <div class="library-list" id="user-lists-container">
+            </div>
+
+        <div class="lib-section-title">Factory Presets</div>
         <div class="library-list">
-            <button class="lib-item" onclick="loadLibrary('states')">
-                <span class="lib-title">50 States & Capitals</span>
-                <span class="lib-desc">Standard alphabetical order.</span>
+            <button class="lib-item" onclick="loadPreset('states')">
+                <div class="lib-text-zone">
+                    <span class="lib-title">50 States & Capitals</span>
+                    <span class="lib-desc">Standard alphabetical order.</span>
+                </div>
             </button>
-            <button class="lib-item" onclick="loadLibrary('presidents')">
-                <span class="lib-title">US Presidents</span>
-                <span class="lib-desc">Chronological order with years served.</span>
-            </button>
-            <button class="lib-item" onclick="loadLibrary('guitar')">
-                <span class="lib-title">Standard Guitar Tuning</span>
-                <span class="lib-desc">Low E to High E string notes.</span>
+            <button class="lib-item" onclick="loadPreset('presidents')">
+                <div class="lib-text-zone">
+                    <span class="lib-title">US Presidents</span>
+                    <span class="lib-desc">Chronological order with years.</span>
+                </div>
             </button>
         </div>
 
-        <button class="btn-secondary" style="margin-top: auto;" onclick="showView('capture-view')">← BACK TO HOME</button>
+        <button class="btn-secondary" style="margin-top: 10px;" onclick="showView('capture-view')">← BACK TO HOME</button>
     </div>
 
     <div id="batch-view" class="view-container">
         <div class="header">
-            <h1 style="font-size: 18px;">Database Manager</h1>
-            <p>One phrase per line.</p>
+            <h1>Batch Editor</h1>
+            <p>Editing: <span id="batch-list-name-display" style="font-weight:bold; color:var(--text-dark);"></span></p>
         </div>
 
-        <div class="row-btns" style="margin-bottom: 5px;">
+        <div class="row-btns">
             <button class="btn-secondary" onclick="sortBatch('az')">SORT A-Z</button>
             <button class="btn-secondary" onclick="sortBatch('za')">SORT Z-A</button>
         </div>
 
-        <textarea id="batch-input" placeholder="Paste a list here, or copy your saved list out..."></textarea>
+        <textarea id="batch-input" placeholder="Paste a list here (one per line)..."></textarea>
 
-        <div class="row-btns">
-            <button class="btn-primary" onclick="importBatch()">IMPORT & SAVE</button>
-            <button class="btn-secondary" onclick="copyBatch()">COPY ALL</button>
-        </div>
-        
-        <button class="btn-secondary" onclick="showView('capture-view')">← BACK TO HOME</button>
+        <button class="btn-primary" onclick="saveBatch()">💾 SAVE CHANGES</button>
+        <button class="btn-secondary" onclick="showView('capture-view')">← CANCEL / BACK</button>
     </div>
 
     <div id="playback-view" class="view-container">
@@ -200,107 +213,159 @@
     </div>
 
 <script>
-    // --- PRESET LIBRARY DATA ---
-    const libraryData = {
-        states: "Alabama, Montgomery\nAlaska, Juneau\nArizona, Phoenix\nArkansas, Little Rock\nCalifornia, Sacramento\nColorado, Denver\nConnecticut, Hartford\nDelaware, Dover\nFlorida, Tallahassee\nGeorgia, Atlanta\nHawaii, Honolulu\nIdaho, Boise\nIllinois, Springfield\nIndiana, Indianapolis\nIowa, Des Moines\nKansas, Topeka\nKentucky, Frankfort\nLouisiana, Baton Rouge\nMaine, Augusta\nMaryland, Annapolis\nMassachusetts, Boston\nMichigan, Lansing\nMinnesota, St. Paul\nMississippi, Jackson\nMissouri, Jefferson City\nMontana, Helena\nNebraska, Lincoln\nNevada, Carson City\nNew Hampshire, Concord\nNew Jersey, Trenton\nNew Mexico, Santa Fe\nNew York, Albany\nNorth Carolina, Raleigh\nNorth Dakota, Bismarck\nOhio, Columbus\nOklahoma, Oklahoma City\nOregon, Salem\nPennsylvania, Harrisburg\nRhode Island, Providence\nSouth Carolina, Columbia\nSouth Dakota, Pierre\nTennessee, Nashville\nTexas, Austin\nUtah, Salt Lake City\nVermont, Montpelier\nVirginia, Richmond\nWashington, Olympia\nWest Virginia, Charleston\nWisconsin, Madison\nWyoming, Cheyenne",
-        presidents: "1. George Washington (1789-1797)\n2. John Adams (1797-1801)\n3. Thomas Jefferson (1801-1809)\n4. James Madison (1809-1817)\n16. Abraham Lincoln (1861-1865)\n26. Theodore Roosevelt (1901-1909)\n32. Franklin D. Roosevelt (1933-1945)\n35. John F. Kennedy (1961-1963)",
-        guitar: "String 6: Low E\nString 5: A\nString 4: D\nString 3: G\nString 2: B\nString 1: High E"
+    // --- PRESET DATA ---
+    const factoryPresets = {
+        states: { name: "50 States & Capitals", data: "Alabama, Montgomery\nAlaska, Juneau\nArizona, Phoenix\nArkansas, Little Rock\nCalifornia, Sacramento\nColorado, Denver\nConnecticut, Hartford\nDelaware, Dover\nFlorida, Tallahassee\nGeorgia, Atlanta\nHawaii, Honolulu\nIdaho, Boise\nIllinois, Springfield\nIndiana, Indianapolis\nIowa, Des Moines\nKansas, Topeka\nKentucky, Frankfort\nLouisiana, Baton Rouge\nMaine, Augusta\nMaryland, Annapolis\nMassachusetts, Boston\nMichigan, Lansing\nMinnesota, St. Paul\nMississippi, Jackson\nMissouri, Jefferson City\nMontana, Helena\nNebraska, Lincoln\nNevada, Carson City\nNew Hampshire, Concord\nNew Jersey, Trenton\nNew Mexico, Santa Fe\nNew York, Albany\nNorth Carolina, Raleigh\nNorth Dakota, Bismarck\nOhio, Columbus\nOklahoma, Oklahoma City\nOregon, Salem\nPennsylvania, Harrisburg\nRhode Island, Providence\nSouth Carolina, Columbia\nSouth Dakota, Pierre\nTennessee, Nashville\nTexas, Austin\nUtah, Salt Lake City\nVermont, Montpelier\nVirginia, Richmond\nWashington, Olympia\nWest Virginia, Charleston\nWisconsin, Madison\nWyoming, Cheyenne" },
+        presidents: { name: "US Presidents", data: "1. George Washington\n2. John Adams\n3. Thomas Jefferson\n4. James Madison\n16. Abraham Lincoln\n26. Theodore Roosevelt\n32. Franklin D. Roosevelt\n35. John F. Kennedy" }
     };
 
-    // --- STATE MANAGEMENT ---
-    let memos = JSON.parse(localStorage.getItem('memoFlashcardsV2')) || [];
+    // --- FILE SYSTEM STATE ---
+    let appData = JSON.parse(localStorage.getItem('memoFlashV3')) || { activeListId: null, lists: {} };
+
+    // Initialize if brand new user
+    if (!appData.activeListId || Object.keys(appData.lists).length === 0) {
+        let defaultId = 'list_' + Date.now();
+        appData.lists[defaultId] = { name: "Quick Captures", items: [] };
+        appData.activeListId = defaultId;
+        saveAppData();
+    }
     
-    let playbackDeck = [];
-    let historyQueue = [];
-    let historyIndex = -1; 
-    
-    let isPlaying = false;
-    let tempoSeconds = 5;
-    let secondsLeft = 5;
-    let timerInterval = null;
-    let voiceEnabled = false;
-    let voiceSpeed = 1.0;
+    // Playback Engine Variables
+    let playbackDeck = []; let historyQueue = []; let historyIndex = -1; 
+    let isPlaying = false; let tempoSeconds = 5; let secondsLeft = 5;
+    let timerInterval = null; let voiceEnabled = false; let voiceSpeed = 1.0;
 
     // --- INITIALIZATION ---
-    document.getElementById('count-display').innerText = memos.length;
+    updateMainUI();
+
+    function saveAppData() {
+        localStorage.setItem('memoFlashV3', JSON.stringify(appData));
+        updateMainUI();
+    }
+
+    function updateMainUI() {
+        let activeList = appData.lists[appData.activeListId];
+        document.getElementById('active-list-title-display').innerText = activeList.name;
+        document.getElementById('count-display').innerText = activeList.items.length;
+    }
 
     function showView(viewId) {
         document.getElementById('capture-view').style.display = 'none';
         document.getElementById('library-view').style.display = 'none';
         document.getElementById('batch-view').style.display = 'none';
         document.getElementById('playback-view').style.display = 'none';
+        
         document.getElementById(viewId).style.display = 'flex';
 
         if (viewId === 'batch-view') {
-            document.getElementById('batch-input').value = memos.join('\n');
+            document.getElementById('batch-list-name-display').innerText = appData.lists[appData.activeListId].name;
+            document.getElementById('batch-input').value = appData.lists[appData.activeListId].items.join('\n');
+        } else if (viewId === 'library-view') {
+            renderLibrary();
         }
     }
 
-    // --- DATA HANDLING ---
+    // --- DATA FUNCTIONS ---
     function saveSingleMemo() {
         const input = document.getElementById('single-input');
         const term = input.value.trim();
         if (!term) return;
 
-        memos.push(term);
-        saveData();
+        appData.lists[appData.activeListId].items.push(term);
+        saveAppData();
         
         input.value = '';
         const saveBtn = document.querySelector('#capture-view .btn-primary');
         saveBtn.innerText = "SAVED! ✔";
-        setTimeout(() => saveBtn.innerText = "SAVE PHRASE", 1000);
+        setTimeout(() => saveBtn.innerText = "➕ ADD TO LIST", 1000);
     }
 
-    function loadLibrary(key) {
-        document.getElementById('batch-input').value = libraryData[key];
-        showView('batch-view');
+    function saveBatch() {
+        const input = document.getElementById('batch-input').value;
+        const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        
+        appData.lists[appData.activeListId].items = lines;
+        saveAppData();
+        showView('capture-view');
     }
 
     function sortBatch(dir) {
         const inputArea = document.getElementById('batch-input');
         let lines = inputArea.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        
         if(dir === 'az') lines.sort((a, b) => a.localeCompare(b));
         if(dir === 'za') lines.sort((a, b) => b.localeCompare(a));
-        
         inputArea.value = lines.join('\n');
     }
 
-    function importBatch() {
-        const input = document.getElementById('batch-input').value;
-        const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-        
-        if (lines.length === 0) {
-            memos = []; // Allow clearing the database
-        } else {
-            memos = lines; 
+    function renameCurrentList() {
+        let currentName = appData.lists[appData.activeListId].name;
+        let newName = prompt("Rename this list:", currentName);
+        if (newName && newName.trim() !== "") {
+            appData.lists[appData.activeListId].name = newName.trim();
+            saveAppData();
         }
+    }
+
+    // --- LIBRARY FUNCTIONS ---
+    function renderLibrary() {
+        const container = document.getElementById('user-lists-container');
+        container.innerHTML = '';
         
-        saveData();
-        alert("Saved " + lines.length + " phrases successfully!");
+        // Create an "Add New Blank List" button
+        const addBtn = document.createElement('button');
+        addBtn.className = 'lib-item';
+        addBtn.style.justifyContent = 'center';
+        addBtn.innerHTML = '<span class="lib-title" style="color:var(--text-dim);">+ Create New Blank List</span>';
+        addBtn.onclick = () => {
+            let newId = 'list_' + Date.now();
+            appData.lists[newId] = { name: "New Custom List", items: [] };
+            appData.activeListId = newId;
+            saveAppData();
+            showView('capture-view');
+        };
+        container.appendChild(addBtn);
+
+        // List User's Saved Lists
+        for (const [id, listObj] of Object.entries(appData.lists)) {
+            const btn = document.createElement('button');
+            btn.className = 'lib-item';
+            if (id === appData.activeListId) btn.style.borderColor = "var(--blue-accent)";
+            
+            btn.innerHTML = `
+                <div class="lib-text-zone">
+                    <span class="lib-title">${listObj.name}</span>
+                    <span class="lib-desc">${listObj.items.length} phrases</span>
+                </div>
+                ${id === appData.activeListId ? '<span class="lib-badge" style="background:var(--blue-accent); color:white;">ACTIVE</span>' : '<span class="lib-badge">LOAD</span>'}
+            `;
+            
+            btn.onclick = () => {
+                appData.activeListId = id;
+                saveAppData();
+                showView('capture-view');
+            };
+            container.appendChild(btn);
+        }
+    }
+
+    function loadPreset(key) {
+        let newId = 'list_' + Date.now();
+        let items = factoryPresets[key].data.split('\n');
+        appData.lists[newId] = { name: factoryPresets[key].name, items: items };
+        appData.activeListId = newId;
+        saveAppData();
+        alert(`Loaded "${factoryPresets[key].name}" into a new list!`);
         showView('capture-view');
-    }
-
-    function copyBatch() {
-        const input = document.getElementById('batch-input');
-        input.select();
-        document.execCommand('copy');
-        alert("List copied to clipboard!");
-    }
-
-    function saveData() {
-        localStorage.setItem('memoFlashcardsV2', JSON.stringify(memos));
-        document.getElementById('count-display').innerText = memos.length;
     }
 
     // --- PLAYBACK ENGINE ---
     function startReviewMode() {
-        if (memos.length === 0) { alert("Save some phrases first!"); return; }
+        let activeItems = appData.lists[appData.activeListId].items;
+        if (activeItems.length === 0) { alert("This list is empty! Add some phrases first."); return; }
 
         showView('playback-view');
-        playbackDeck = [...memos].sort(() => Math.random() - 0.5);
-        historyQueue = [];
-        historyIndex = -1;
+        playbackDeck = [...activeItems].sort(() => Math.random() - 0.5);
+        historyQueue = []; historyIndex = -1;
         
         tempoSeconds = parseInt(document.getElementById('tempo-slider').value);
         voiceSpeed = parseFloat(document.getElementById('speed-slider').value);
@@ -325,13 +390,11 @@
         const btn = document.getElementById('voice-btn');
         if (voiceEnabled) {
             btn.innerText = "🔊 ON";
-            btn.style.background = "#ddf4ff";
-            btn.style.color = "var(--blue-accent)";
+            btn.style.background = "#ddf4ff"; btn.style.color = "var(--blue-accent)";
             speakCard(document.getElementById('card-term-text').innerText);
         } else {
             btn.innerText = "🔇 OFF";
-            btn.style.background = "#e8ecf1";
-            btn.style.color = "var(--text-dark)";
+            btn.style.background = "#e8ecf1"; btn.style.color = "var(--text-dark)";
             window.speechSynthesis.cancel();
         }
     }
@@ -356,13 +419,9 @@
         renderTimer();
     }
 
-    function renderTimer() {
-        document.getElementById('timer-text').innerText = secondsLeft + "s";
-    }
+    function renderTimer() { document.getElementById('timer-text').innerText = secondsLeft + "s"; }
 
-    function togglePlayPause() {
-        if (isPlaying) pause(); else play();
-    }
+    function togglePlayPause() { if (isPlaying) pause(); else play(); }
 
     function play() {
         isPlaying = true;
@@ -378,6 +437,9 @@
     }
 
     function tickTimer() {
+        // SMART TIMER: Do not tick down if the robotic voice is currently speaking!
+        if (voiceEnabled && window.speechSynthesis.speaking) return; 
+
         secondsLeft--;
         renderTimer();
         if (secondsLeft <= 0) { loadNextCard(); }
@@ -394,7 +456,8 @@
             renderCard(historyQueue[historyIndex]);
         } else {
             if (playbackDeck.length === 0) {
-                playbackDeck = [...memos].sort(() => Math.random() - 0.5);
+                let activeItems = appData.lists[appData.activeListId].items;
+                playbackDeck = [...activeItems].sort(() => Math.random() - 0.5);
             }
             const nextMemo = playbackDeck.pop();
             historyQueue.push(nextMemo);
@@ -405,10 +468,7 @@
         renderTimer();
     }
 
-    function skipCard() {
-        loadNextCard();
-        if(!isPlaying) play(); 
-    }
+    function skipCard() { loadNextCard(); if(!isPlaying) play(); }
 
     function rewindCard() {
         if (historyIndex > 0) {
@@ -419,7 +479,6 @@
             if(!isPlaying) play();
         }
     }
-
 </script>
 </body>
 </html>
