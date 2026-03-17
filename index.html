@@ -1,1 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MemoFlash v0.1</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --panel-bg: #ffffff;
+            --text-dark: #1f2328;
+            --text-dim: #656d76;
+            --blue-accent: #0969da;
+            --border-color: #d0d7de;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0; padding: 15px;
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; box-sizing: border-box;
+            user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- CAPTURE VIEW --- */
+        #capture-view { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
+        
+        .header { text-align: center; margin-bottom: 10px; }
+        .header h1 { margin: 0; font-size: 24px; color: var(--blue-accent); }
+        .header p { margin: 5px 0 0 0; font-size: 13px; color: var(--text-dim); }
+
+        textarea {
+            width: 100%; height: 120px; padding: 12px; box-sizing: border-box;
+            border: 2px solid var(--border-color); border-radius: 8px; font-size: 16px;
+            resize: none; font-family: inherit;
+        }
+        
+        .input-sub {
+            width: 100%; padding: 10px; box-sizing: border-box;
+            border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;
+            margin-top: -5px; font-family: inherit;
+        }
+
+        .btn-row { display: flex; gap: 10px; }
+        
+        button {
+            border: none; border-radius: 8px; font-weight: bold; font-size: 14px;
+            padding: 15px; cursor: pointer; text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: opacity 0.2s;
+        }
+        button:active { opacity: 0.7; transform: translateY(1px); box-shadow: none; }
+
+        .btn-action { background: #e8ecf1; color: var(--text-dark); border: 1px solid var(--border-color); flex: 1; }
+        .btn-save { background: var(--blue-accent); color: white; width: 100%; font-size: 16px; margin-top: 10px; }
+        .btn-review { background: #2da44e; color: white; width: 100%; margin-top: 20px; padding: 20px;}
+
+        /* --- PLAYBACK VIEW --- */
+        #playback-view { width: 100%; max-width: 400px; display: none; flex-direction: column; height: 100%; }
+        
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-exit { background: transparent; border: 1px solid var(--border-color); padding: 8px 15px; font-size: 12px; }
+        .timer-display { font-size: 24px; font-weight: 900; color: var(--blue-accent); font-variant-numeric: tabular-nums; }
+
+        .card {
+            background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 12px;
+            flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 20px; overflow-y: auto;
+        }
+        
+        .card-term { font-size: 28px; font-weight: bold; color: var(--text-dark); margin-bottom: 15px; word-break: break-word;}
+        .card-def { font-size: 16px; color: var(--text-dim); border-top: 1px solid var(--border-color); padding-top: 15px; width: 100%; display: none;}
+
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn-ctrl { background: #ffffff; border: 1px solid var(--border-color); font-size: 18px; flex: 1; padding: 20px 0; }
+        .btn-playpause { background: var(--blue-accent); color: white; border: none; flex: 2; font-size: 18px;}
+
+        .settings-panel { background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 20px;}
+        .slider-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 12px; font-weight: bold; color: var(--text-dim); text-transform: uppercase;}
+        input[type=range] { width: 100%; accent-color: var(--blue-accent); }
+        
+        .empty-state { text-align: center; color: var(--text-dim); font-size: 16px; padding: 40px 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="capture-view">
+        <div class="header">
+            <h1>MemoFlash</h1>
+            <p>Quick capture now. Memorize later.</p>
+        </div>
+
+        <textarea id="term-input" placeholder="Type or paste the phrase you want to remember..."></textarea>
+        <input type="text" id="def-input" class="input-sub" placeholder="Optional context or definition">
+
+        <div class="btn-row">
+            <button class="btn-action" onclick="pasteFromClipboard()">📋 PASTE</button>
+            <button class="btn-action" id="dictate-btn" onclick="startDictation()">🎙 DICTATE</button>
+        </div>
+
+        <button class="btn-save" onclick="saveMemo()">SAVE MEMO</button>
+
+        <button class="btn-review" onclick="startReviewMode()">START FLASHCARDS (<span id="count-display">0</span>)</button>
+    </div>
+
+    <div id="playback-view">
+        <div class="top-bar">
+            <button class="btn-exit" onclick="exitReviewMode()">✖ DONE</button>
+            <div class="timer-display" id="timer-text">5s</div>
+        </div>
+
+        <div class="card" id="flashcard">
+            <div class="card-term" id="card-term-text">Loading...</div>
+            <div class="card-def" id="card-def-text"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-ctrl" onclick="rewindCard()">⏮</button>
+            <button class="btn-playpause" id="play-pause-btn" onclick="togglePlayPause()">⏸ PAUSE</button>
+            <button class="btn-ctrl" onclick="skipCard()">⏭</button>
+        </div>
+
+        <div class="settings-panel">
+            <div class="slider-row">
+                <span>Display Tempo</span>
+                <span id="tempo-val">5 Seconds</span>
+            </div>
+            <input type="range" id="tempo-slider" min="1" max="15" value="5" oninput="updateTempo(this.value)">
+        </div>
+    </div>
+
+<script>
+    // --- STATE MANAGEMENT ---
+    let memos = JSON.parse(localStorage.getItem('memoFlashcards')) || [];
+    
+    // Playback State
+    let playbackDeck = [];
+    let historyQueue = [];
+    let historyIndex = -1; // Points to current card in historyQueue
+    
+    let isPlaying = false;
+    let tempoSeconds = 5;
+    let secondsLeft = 5;
+    let timerInterval = null;
+
+    // --- INITIALIZATION ---
+    document.getElementById('count-display').innerText = memos.length;
+
+    // --- CAPTURE FUNCTIONS ---
+    async function pasteFromClipboard() {
+        try {
+            const text = await navigator.clipboard.readText();
+            const input = document.getElementById('term-input');
+            input.value = input.value ? input.value + " " + text : text;
+        } catch (err) {
+            alert("Clipboard access denied. You may need to use the standard tap-and-paste method.");
+        }
+    }
+
+    function startDictation() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Voice dictation is not supported by your browser. Please use the microphone button on your digital keyboard.");
+            return;
+        }
+        
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        
+        const dictBtn = document.getElementById('dictate-btn');
+        dictBtn.innerText = "🔴 LISTENING...";
+        dictBtn.style.color = "red";
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            const input = document.getElementById('term-input');
+            input.value = input.value ? input.value + " " + transcript : transcript;
+            resetDictateBtn(dictBtn);
+        };
+
+        recognition.onerror = function(event) {
+            resetDictateBtn(dictBtn);
+        };
+
+        recognition.onend = function() {
+            resetDictateBtn(dictBtn);
+        };
+
+        recognition.start();
+    }
+
+    function resetDictateBtn(btn) {
+        btn.innerText = "🎙 DICTATE";
+        btn.style.color = "";
+    }
+
+    function saveMemo() {
+        const termInput = document.getElementById('term-input');
+        const defInput = document.getElementById('def-input');
+        const term = termInput.value.trim();
+        const def = defInput.value.trim();
+
+        if (!term) return;
+
+        memos.push({ id: Date.now(), term: term, def: def });
+        localStorage.setItem('memoFlashcards', JSON.stringify(memos));
+        
+        document.getElementById('count-display').innerText = memos.length;
+        termInput.value = '';
+        defInput.value = '';
+        
+        // Brief visual feedback
+        const saveBtn = document.querySelector('.btn-save');
+        saveBtn.innerText = "SAVED! ✔";
+        setTimeout(() => saveBtn.innerText = "SAVE MEMO", 1000);
+    }
+
+    // --- PLAYBACK ENGINE ---
+    function startReviewMode() {
+        if (memos.length === 0) {
+            alert("You need to save at least one phrase first!");
+            return;
+        }
+
+        document.getElementById('capture-view').style.display = 'none';
+        document.getElementById('playback-view').style.display = 'flex';
+
+        // Shuffle deck
+        playbackDeck = [...memos].sort(() => Math.random() - 0.5);
+        historyQueue = [];
+        historyIndex = -1;
+        
+        tempoSeconds = parseInt(document.getElementById('tempo-slider').value);
+        
+        loadNextCard();
+        play();
+    }
+
+    function exitReviewMode() {
+        pause();
+        document.getElementById('playback-view').style.display = 'none';
+        document.getElementById('capture-view').style.display = 'flex';
+    }
+
+    function updateTempo(val) {
+        tempoSeconds = parseInt(val);
+        document.getElementById('tempo-val').innerText = tempoSeconds + " Seconds";
+        // If user speeds it up past the current remaining seconds, adjust immediately
+        if (secondsLeft > tempoSeconds) secondsLeft = tempoSeconds;
+        renderTimer();
+    }
+
+    function renderTimer() {
+        document.getElementById('timer-text').innerText = secondsLeft + "s";
+    }
+
+    function togglePlayPause() {
+        if (isPlaying) pause(); else play();
+    }
+
+    function play() {
+        isPlaying = true;
+        document.getElementById('play-pause-btn').innerHTML = "⏸ PAUSE";
+        clearInterval(timerInterval);
+        timerInterval = setInterval(tickTimer, 1000);
+    }
+
+    function pause() {
+        isPlaying = false;
+        document.getElementById('play-pause-btn').innerHTML = "▶ PLAY";
+        clearInterval(timerInterval);
+    }
+
+    function tickTimer() {
+        secondsLeft--;
+        renderTimer();
+        if (secondsLeft <= 0) {
+            loadNextCard();
+        }
+    }
+
+    function renderCard(memoObj) {
+        document.getElementById('card-term-text').innerText = memoObj.term;
+        const defBox = document.getElementById('card-def-text');
+        
+        if (memoObj.def) {
+            defBox.innerText = memoObj.def;
+            defBox.style.display = 'block';
+        } else {
+            defBox.style.display = 'none';
+        }
+    }
+
+    function loadNextCard() {
+        // If we are looking at history and there is a "next" card already in history, go forward in history
+        if (historyIndex < historyQueue.length - 1) {
+            historyIndex++;
+            renderCard(historyQueue[historyIndex]);
+        } else {
+            // Draw a new card from the shuffled deck
+            if (playbackDeck.length === 0) {
+                // Reshuffle if empty
+                playbackDeck = [...memos].sort(() => Math.random() - 0.5);
+            }
+            const nextMemo = playbackDeck.pop();
+            historyQueue.push(nextMemo);
+            historyIndex = historyQueue.length - 1;
+            renderCard(nextMemo);
+        }
+        
+        secondsLeft = tempoSeconds;
+        renderTimer();
+    }
+
+    function skipCard() {
+        loadNextCard();
+        if(!isPlaying) play(); // Auto-play if they skip manually while paused
+    }
+
+    function rewindCard() {
+        if (historyIndex > 0) {
+            historyIndex--;
+            renderCard(historyQueue[historyIndex]);
+            secondsLeft = tempoSeconds;
+            renderTimer();
+            if(!isPlaying) play();
+        }
+    }
+
+</script>
+</body>
+</html>
 
